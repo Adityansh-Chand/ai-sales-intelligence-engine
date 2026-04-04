@@ -13,3 +13,10 @@ Model --> PredictionAPI
 PredictionAPI --> Dashboard
 PredictionAPI --> CRM
 ```
+
+
+---
+
+# License
+
+MIT License
