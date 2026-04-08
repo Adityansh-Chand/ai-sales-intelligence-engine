@@ -17,9 +17,9 @@ Predictions --> Explanation
 features → transform → model → score → explain
 
 ### Highlights
-feature engineering pipeline
-interpretable scoring
-evaluation structure
+feature engineering pipeline, 
+interpretable scoring and 
+evaluation structure.
 
 ## License
 MIT
