@@ -1,22 +1,25 @@
 
-# Ai Sales Intelligence Engine
+# AI Sales Intelligence Engine
 
-AI engineering project demonstrating modular pipeline design, evaluation awareness, and production-style architecture.
+Predictive ML pipeline for modular feature engineering and scoring workflows.
 
-## Key Capabilities
+## Architecture
 
-• config-driven pipelines
-• modular components
-• evaluation scaffold
-• logging enabled
-• test structure
+```mermaid
+flowchart LR
+RawData --> Features
+Features --> Model
+Model --> Predictions
+Predictions --> Explanation
+``
 
-## Engineering Focus
+## Pipeline
+features â†’ transform â†’ model â†’ score â†’ explain
 
-reproducible pipelines
-structured reasoning
-extensible architecture
+### Highlights
+feature engineering pipeline
+interpretable scoring
+evaluation structure
 
 ## License
-
 MIT
