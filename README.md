@@ -1,22 +1,22 @@
-# AI Sales Intelligence Engine
 
-Predictive ML pipeline for lead scoring and revenue intelligence.
+# Ai Sales Intelligence Engine
 
-## Architecture
+AI engineering project demonstrating modular pipeline design, evaluation awareness, and production-style architecture.
 
-```mermaid
-flowchart LR
+## Key Capabilities
 
-CRM --> FeatureEngineering
-FeatureEngineering --> Model
-Model --> PredictionAPI
-PredictionAPI --> Dashboard
-PredictionAPI --> CRM
-```
+• config-driven pipelines
+• modular components
+• evaluation scaffold
+• logging enabled
+• test structure
 
+## Engineering Focus
 
----
+reproducible pipelines
+structured reasoning
+extensible architecture
 
-# License
+## License
 
-MIT License
+MIT
