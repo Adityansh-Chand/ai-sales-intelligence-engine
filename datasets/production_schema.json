@@ -1,0 +1,20 @@
+{
+  "account_snapshot": {
+    "account_id": "string",
+    "tenant_id": "string",
+    "industry": "string",
+    "visits": "integer",
+    "spend": "number",
+    "account_age_days": "integer",
+    "usage_frequency": "number",
+    "support_tickets": "integer",
+    "renewal_days": "integer",
+    "last_activity_at": "ISO-8601 timestamp"
+  },
+  "outcome_label": {
+    "account_id": "string",
+    "converted": "0 | 1",
+    "opportunity_value": "number",
+    "closed_at": "ISO-8601 timestamp"
+  }
+}
