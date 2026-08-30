@@ -1,3 +1,10 @@
 {
-  "status": "running"
+  "status": "running",
+  "model": {
+    "model_type": "LogisticRegression (fitted)",
+    "data_source": "synthetic -- training/generate_dataset.py",
+    "trained_on": 3750,
+    "test_roc_auc": 0.8614,
+    "sklearn_version": "1.8.0"
+  }
 }

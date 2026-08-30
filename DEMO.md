@@ -1,7 +1,9 @@
 # Demo
 
-This demo shows the sales intelligence service scoring an account, returning a
-propensity segment, exposing metrics, and writing an audit event.
+This demo shows the sales intelligence service scoring an account with a fitted
+logistic regression (see `models/artifacts/model_card.md`), returning a
+propensity segment, exposing metrics, and writing an audit event. `GET /health`
+reports which model is loaded and that its training data was synthetic.
 
 ## Run Locally
 

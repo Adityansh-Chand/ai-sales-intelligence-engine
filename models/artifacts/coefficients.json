@@ -1,0 +1,28 @@
+{
+  "note": "Fitted by training/train.py -- not hand-chosen. Stored in readable form so a reviewer can confirm these are learned values.",
+  "intercept": -1.1786631125241813,
+  "coefficients": {
+    "visits": 0.14581457843081858,
+    "spend": 0.30661612785480874,
+    "account_age_days": 0.235125634653692,
+    "usage_frequency": 0.9911346384844064,
+    "support_tickets": -0.8018318897166004,
+    "renewal_days": -0.3541379966074034
+  },
+  "scaler_mean": {
+    "visits": 8.737866666666667,
+    "spend": 11412.589493333302,
+    "account_age_days": 400.5421333333333,
+    "usage_frequency": 49.746506666666654,
+    "support_tickets": 1.2938666666666667,
+    "renewal_days": 181.26933333333332
+  },
+  "scaler_scale": {
+    "visits": 5.595887130940231,
+    "spend": 13027.847206031705,
+    "account_age_days": 339.4966292784784,
+    "usage_frequency": 23.095821435848958,
+    "support_tickets": 1.3633448019077439,
+    "renewal_days": 104.45002884739782
+  }
+}
