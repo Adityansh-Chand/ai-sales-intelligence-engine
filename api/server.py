@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from monitoring.metrics import metrics
 from models.explainability import explain
-from models.scoring import predict, segment
+from models.scoring import model_metadata, predict, segment
 from pipeline.features import build_features, features_to_dict
 from utils.security import request_id_middleware, require_api_key
 from utils.storage import recent_events, save_event
@@ -63,7 +63,12 @@ def health():
 
 @app.get("/health")
 def health_check():
-    return {"status": "running"}
+    """Health plus the identity of the model actually loaded.
+
+    Exposed so a reviewer can confirm from the API alone that a fitted artifact
+    is being served, and that its training data was synthetic.
+    """
+    return {"status": "running", "model": model_metadata()}
 
 
 @app.get("/metrics")

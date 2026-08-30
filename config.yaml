@@ -1,8 +1,13 @@
 
-pipeline:
-  chunk_size: 500
-  top_k: 5
-  rerank: true
+model:
+  artifact_dir: models/artifacts
+  # Segment cut points are fitted (quantiles of the training score distribution),
+  # not configured here. See training/train.py: LOW_QUANTILE / HIGH_QUANTILE.
+
+data:
+  dataset: datasets/accounts.csv
+  source: synthetic
+  generator: training/generate_dataset.py
 
 logging:
   level: INFO
