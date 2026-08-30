@@ -134,6 +134,22 @@ Kubernetes manifests live in `k8s/deployment.yaml` and include probes, resource
 limits, a Service, and a PVC for the SQLite event store. The default manifest
 uses one replica because SQLite is the default event store.
 
+## Cross-service integration (optional)
+
+This service exposes an account lookup so callers that know only an account id can
+ask for propensity without carrying feature vectors around:
+
+```
+GET /accounts/{account_id}/score
+```
+
+The features stay owned by the service that models them — the feature-store role
+in miniature, backed here by the generated dataset. The customer operations
+service uses it to escalate high-propensity accounts that write in unhappy.
+
+This is a read-only addition. Nothing about the model, the metrics, or the
+existing `/score` contract changes.
+
 ## Reviewer Status
 
 **What is real and independently checkable:**
