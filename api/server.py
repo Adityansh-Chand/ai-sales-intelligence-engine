@@ -1,9 +1,12 @@
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from monitoring.drift import DriftMonitor
 from monitoring.metrics import metrics
 from models.explainability import explain
 from models.scoring import model_metadata, predict, segment
@@ -30,6 +33,15 @@ API_VERSION = "v1"
 # The unversioned alias is kept because consumers already call it. It is the
 # deprecation path, not a permanent second interface.
 api = APIRouter()
+
+# Live score distribution against the one the model was fitted on. A model does
+# not fail loudly when its input population moves -- it keeps returning numbers
+# that mean less. The reference is written by training/train.py; if it is absent
+# the service still serves and /v1/drift says so.
+ARTIFACT_DIR = Path(__file__).resolve().parents[1] / "models" / "artifacts"
+drift_monitor = DriftMonitor.from_file(
+    ARTIFACT_DIR / "drift_reference.json", name="propensity_score"
+)
 
 
 class Account(BaseModel):
@@ -123,6 +135,7 @@ def score_known_account(account_id: str, http_request: Request):
 
     metrics.increment("account_lookups_total")
     score = predict(features)
+    drift_monitor.observe(score)
     # Recorded so the lookup shows up in a cross-service trace. Without this the
     # enrichment edge that ops actually calls leaves no trace behind, and the
     # timeline silently omits the hop.
@@ -146,6 +159,7 @@ def score_account(account: Account, http_request: Request):
     metrics.increment("scores_total")
     features = build_features(account.model_dump())
     score = predict(features)
+    drift_monitor.observe(score)
     result = {
         "account_id": account.account_id,
         "score": score,
@@ -155,6 +169,16 @@ def score_account(account: Account, http_request: Request):
     }
     save_event("sales_score", result, current_request_id(http_request))
     return result
+
+
+@api.get("/drift", dependencies=[Depends(require_api_key)])
+def drift():
+    """Is the service still scoring the population it was trained on?
+
+    Reports a status rather than an alarm: a shift says the input distribution
+    moved, not that the model is wrong, and retraining stays a human decision.
+    """
+    return drift_monitor.report()
 
 
 @app.get("/version")
