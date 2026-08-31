@@ -28,6 +28,38 @@ jobs:
       - name: Run evaluation
         run: python evaluation/evaluate.py
 
+  real-data:
+    name: Validate on real data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The dataset is not committed. Cached on the fetch script, so changing the
+      # source or the expected checksum invalidates the cache and re-downloads.
+      - name: Cache UCI Bank Marketing
+        uses: actions/cache@v4
+        with:
+          path: datasets/real
+          key: bank-marketing-${{ hashFiles('training/fetch_real_data.py') }}
+
+      - name: Fetch real dataset
+        run: python training/fetch_real_data.py --check || python training/fetch_real_data.py
+      - name: Real dataset checksum matches
+        run: python training/fetch_real_data.py --check
+
+      # Retrains all four variants and fails if the headline drifted. The upper
+      # bounds in the test suite are the important half: a score that climbs
+      # toward the leaky variant's means the leak came back.
+      - name: Committed real-data metrics are reproducible
+        run: python training/train_real.py --verify
+      - name: Real-data quality gate
+        run: python -m pytest -q tests/test_real_data_quality.py
+
   docker-build:
     name: Docker image build
     runs-on: ubuntu-latest
