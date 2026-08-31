@@ -40,6 +40,7 @@ from sklearn.preprocessing import StandardScaler
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from monitoring.drift import build_reference  # noqa: E402
 from pipeline.features import FEATURE_ORDER  # noqa: E402  (single source of truth)
 from training.generate_dataset import generate  # noqa: E402
 
@@ -49,6 +50,7 @@ MODEL_PATH = ARTIFACT_DIR / "propensity_model.joblib"
 METRICS_PATH = ARTIFACT_DIR / "metrics.json"
 COEFFICIENTS_PATH = ARTIFACT_DIR / "coefficients.json"
 MODEL_CARD_PATH = ARTIFACT_DIR / "model_card.md"
+DRIFT_REFERENCE_PATH = ARTIFACT_DIR / "drift_reference.json"
 
 RANDOM_STATE = 42
 TEST_SIZE = 0.25
@@ -111,6 +113,9 @@ def train():
     predictions = (probabilities >= 0.5).astype(int)
 
     train_scores = best.predict_proba(x_train)[:, 1]
+    # The distribution the model was fitted on, kept so the running service can
+    # tell whether it is still scoring the same kind of population.
+    drift_reference = build_reference(train_scores)
     thresholds = {
         "medium": float(np.quantile(train_scores, LOW_QUANTILE)),
         "high": float(np.quantile(train_scores, HIGH_QUANTILE)),
@@ -151,10 +156,10 @@ def train():
         "sklearn_version": sklearn.__version__,
         "numpy_version": np.__version__,
     }
-    return best, metrics
+    return best, metrics, drift_reference
 
 
-def write_artifacts(model, metrics):
+def write_artifacts(model, metrics, drift_reference):
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, MODEL_PATH)
     METRICS_PATH.write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
@@ -176,6 +181,11 @@ def write_artifacts(model, metrics):
     }
     COEFFICIENTS_PATH.write_text(
         json.dumps(coefficients, indent=2) + "\n", encoding="utf-8"
+    )
+    # The training score distribution, so the running service can tell whether it
+    # is still scoring the same kind of population.
+    DRIFT_REFERENCE_PATH.write_text(
+        json.dumps(drift_reference, indent=2) + "\n", encoding="utf-8"
     )
     MODEL_CARD_PATH.write_text(
         render_model_card(metrics, coefficients), encoding="utf-8"
@@ -287,7 +297,7 @@ def main():
     )
     args = parser.parse_args()
 
-    model, metrics = train()
+    model, metrics, drift_reference = train()
 
     if args.verify:
         if not METRICS_PATH.exists():
@@ -302,7 +312,7 @@ def main():
         print(f"OK: retrained ROC-AUC {new} matches committed {old} within {VERIFY_TOLERANCE}")
         return 0
 
-    write_artifacts(model, metrics)
+    write_artifacts(model, metrics, drift_reference)
     test = metrics["test"]
     print(f"best C           : {metrics['best_C']}")
     print(f"train CV ROC-AUC : {metrics['cv_roc_auc_mean']} +/- {metrics['cv_roc_auc_std']}")
