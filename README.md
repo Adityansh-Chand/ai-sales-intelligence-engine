@@ -286,6 +286,9 @@ existing `/score` contract changes.
 - Dataset and training run reproducible, verified in CI on every push.
 - The same pipeline validated on **real** outcomes (UCI Bank Marketing, CC BY 4.0),
   with the leakage and split choices measured rather than asserted.
+- [Architecture decision records](docs/adr/) for the three contested choices —
+  evaluating the hard way, logistic regression over boosting, and training only on
+  features the API actually receives — each with its rejected alternatives.
 
 **What is explicitly not real:**
 
