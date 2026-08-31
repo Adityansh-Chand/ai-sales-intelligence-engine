@@ -9,7 +9,11 @@ from models.explainability import explain
 from models.scoring import model_metadata, predict, segment
 from pipeline.accounts import account_count, known_account_ids, lookup
 from pipeline.features import build_features, features_to_dict
-from utils.security import request_id_middleware, require_api_key
+from utils.security import (
+    current_request_id,
+    request_id_middleware,
+    require_api_key,
+)
 from utils.storage import recent_events, save_event
 
 app = FastAPI(title="AI Sales Intelligence Engine", version="1.0.0")
@@ -95,12 +99,18 @@ def metrics_endpoint():
 
 
 @api.get("/events", dependencies=[Depends(require_api_key)])
-def events(limit: int = 20):
-    return {"events": recent_events(limit=min(limit, 100))}
+def events(limit: int = 20, request_id: str | None = None):
+    """Recent events, optionally narrowed to one request id.
+
+    `request_id` is what makes this endpoint a trace source rather than a log
+    tail: the portfolio's scripts/trace.py asks all five services the same
+    question and joins the answers into one timeline.
+    """
+    return {"events": recent_events(limit=min(limit, 100), request_id=request_id)}
 
 
 @api.get("/accounts/{account_id}/score", dependencies=[Depends(require_api_key)])
-def score_known_account(account_id: str):
+def score_known_account(account_id: str, http_request: Request):
     """Score an account the service already holds features for.
 
     Exists so a caller that knows only an account id -- the customer operations
@@ -113,6 +123,14 @@ def score_known_account(account_id: str):
 
     metrics.increment("account_lookups_total")
     score = predict(features)
+    # Recorded so the lookup shows up in a cross-service trace. Without this the
+    # enrichment edge that ops actually calls leaves no trace behind, and the
+    # timeline silently omits the hop.
+    save_event(
+        "sales_account_lookup",
+        {"account_id": account_id, "score": score, "segment": segment(score)},
+        current_request_id(http_request),
+    )
     return {
         **metadata,
         "score": score,
@@ -124,7 +142,7 @@ def score_known_account(account_id: str):
 
 
 @api.post("/score", dependencies=[Depends(require_api_key)])
-def score_account(account: Account):
+def score_account(account: Account, http_request: Request):
     metrics.increment("scores_total")
     features = build_features(account.model_dump())
     score = predict(features)
@@ -135,7 +153,7 @@ def score_account(account: Account):
         "features": features_to_dict(features),
         "explanation": explain(features),
     }
-    save_event("sales_score", result)
+    save_event("sales_score", result, current_request_id(http_request))
     return result
 
 
