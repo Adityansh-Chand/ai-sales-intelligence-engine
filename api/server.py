@@ -1,5 +1,5 @@
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -14,6 +14,18 @@ from utils.storage import recent_events, save_event
 
 app = FastAPI(title="AI Sales Intelligence Engine", version="1.0.0")
 app.middleware("http")(request_id_middleware)
+
+API_VERSION = "v1"
+
+# Data endpoints live on a router so they can be served at BOTH /v1/... and the
+# original unversioned paths from a single definition. Without a version prefix
+# there is no way to change a response shape without breaking every consumer on
+# the same deploy -- the contract checks in the portfolio repo detect that
+# breakage, they do not prevent it.
+#
+# The unversioned alias is kept because consumers already call it. It is the
+# deprecation path, not a permanent second interface.
+api = APIRouter()
 
 
 class Account(BaseModel):
@@ -82,12 +94,12 @@ def metrics_endpoint():
     return metrics.snapshot()
 
 
-@app.get("/events", dependencies=[Depends(require_api_key)])
+@api.get("/events", dependencies=[Depends(require_api_key)])
 def events(limit: int = 20):
     return {"events": recent_events(limit=min(limit, 100))}
 
 
-@app.get("/accounts/{account_id}/score", dependencies=[Depends(require_api_key)])
+@api.get("/accounts/{account_id}/score", dependencies=[Depends(require_api_key)])
 def score_known_account(account_id: str):
     """Score an account the service already holds features for.
 
@@ -111,7 +123,7 @@ def score_known_account(account_id: str):
     }
 
 
-@app.post("/score", dependencies=[Depends(require_api_key)])
+@api.post("/score", dependencies=[Depends(require_api_key)])
 def score_account(account: Account):
     metrics.increment("scores_total")
     features = build_features(account.model_dump())
@@ -125,3 +137,25 @@ def score_account(account: Account):
     }
     save_event("sales_score", result)
     return result
+
+
+@app.get("/version")
+def version():
+    """What this service speaks, so a consumer can check rather than assume."""
+    return {
+        "service": "ai-sales-intelligence-engine",
+        "current": API_VERSION,
+        "supported": [API_VERSION],
+        "unversioned_alias": {
+            "status": "deprecated",
+            "note": ("the same endpoints are served without a /v1 prefix for "
+                     "consumers that predate versioning; new callers should use "
+                     f"/{API_VERSION}"),
+        },
+    }
+
+
+# Mounted twice, one set of handlers. The alias is hidden from the schema so the
+# generated docs show one interface rather than two identical ones.
+app.include_router(api, prefix=f"/{API_VERSION}")
+app.include_router(api, include_in_schema=False)
